@@ -114,4 +114,47 @@ public class Grafo {
         sb.append("}" + NEWLINE);
         return sb.toString();
     }
+
+    public void exportarGrausParaCSV(String nomeArquivo) {
+        System.out.println("Exportando graus para " + nomeArquivo + "...");
+        try (PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(nomeArquivo)))) {
+            writer.println("id,grau"); // Cabeçalho
+
+            // Para cada nó do grafo, salva o seu ID e o seu Grau (número de conexões)
+            for (Integer v : adj.keySet()) {
+                writer.println(v + "," + degree(v));
+            }
+            System.out.println("Exportação concluída!");
+        } catch (IOException e) {
+            System.err.println("Erro ao exportar CSV: " + e.getMessage());
+        }
+    }
+
+    public void salvarDistribuicaoGrausTxt(String nomeArquivo) {
+        Map<Integer, Integer> distribuicao = new TreeMap<>();
+
+        // Contabiliza os graus
+        for (int v : adj.keySet()){
+            int gd = degree(v);
+            distribuicao.put(gd, distribuicao.getOrDefault(gd, 0) + 1);
+        }
+
+        try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(nomeArquivo)))) {
+            // Cabeçalho sem espaços complexos para facilitar a leitura via código
+            out.println("Grau,Quantidade");
+
+            for (var entry : distribuicao.entrySet()) {
+                // Salva no formato "Grau,Quantidade" (estilo CSV, mas em .txt)
+                // Isso é o padrão ouro para bibliotecas de gráficos
+                out.printf("%d,%d\n", entry.getKey(), entry.getValue());
+            }
+
+            out.flush();
+            System.out.println("Arquivo para gráfico gerado: " + nomeArquivo);
+        } catch (IOException e) {
+            System.err.println("Erro ao gerar arquivo de dados: " + e.getMessage());
+        }
+    }
+
+
 }

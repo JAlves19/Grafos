@@ -48,6 +48,10 @@ public class Main {
         System.out.println("Densidade do grafo: " + g.getDensity());
 
         g.gerarDistribuicaoGraus();
+        g.salvarDistribuicaoGrausTxt("distribuicao_graus.txt");
+
+        //Chama o metodo de Exportar o CSV
+        g.exportarGrausParaCSV("graus_vertices.csv");
 
         var s = g.getEstatiscasGrau();
         System.out.println("Grau máximo: " + s.get("max"));
