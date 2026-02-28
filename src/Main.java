@@ -1,70 +1,66 @@
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
+import java.net.URL;
+import java.util.zip.GZIPInputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
     public static void main(String[] args) {
-        System.out.println("O Java está procurando o arquivo em: " + System.getProperty("user.dir"));
-    Grafo g = new Grafo();
-    String caminhoArquivo = "roadNet-PA.txt";
+        Grafo g = new Grafo();
+        String nomeArquivoTxt = "roadNet-PA.txt";
+        String urlGz = "https://snap.stanford.edu/data/roadNet-PA.txt.gz";
 
-    System.out.println("Lendo dataset do SNAP...");
-    try (BufferedReader br = new BufferedReader(new FileReader(caminhoArquivo))){
-        String linha;
-        int linhasLidas = 0;
-        while ((linha = br.readLine()) != null){
-            linhasLidas++;
-            if (linha.startsWith("#") || linha.isBlank()) continue; // Ignorar comentários
+        System.out.println("--- Verificando Dataset ---");
 
-            String[] partes = linha.split("\\s+");
-            if (partes.length >= 2){
-                try {
+        // Verifica se o arquivo está descompactado
+        if (!Files.exists(Paths.get(nomeArquivoTxt))) {
+            System.out.println("Arquivo não encontrado. Baixando e descompactando do SNAP...");
+            try {
+                baixarEDescompactar(urlGz, nomeArquivoTxt);
+                System.out.println("Arquivo descompactado com sucesso na pasta do projeto.");
+            } catch (IOException e) {
+                System.err.println("Erro ao baixar/descompactar: " + e.getMessage());
+                return;
+            }
+        } else {
+            System.out.println("O arquivo " + nomeArquivoTxt + " já existe localmente. Pulando download.");
+        }
+
+        // LEITURA DO ARQUIVO
+        try (BufferedReader br = new BufferedReader(new FileReader(nomeArquivoTxt))) {
+            String linha;
+            int contadorLinhas = 0;
+            while ((linha = br.readLine()) != null) {
+                if (linha.startsWith("#") || linha.isBlank()) continue;
+                String[] partes = linha.split("\\s+");
+                if (partes.length >= 2) {
                     int v = Integer.parseInt(partes[0]);
                     int w = Integer.parseInt(partes[1]);
-                    if (v < w){
-                        g.addEdge(v, w);
-                    }
-
-                } catch (NumberFormatException e){
-                    continue;
+                    if (v < w) g.addEdge(v, w);
                 }
+                contadorLinhas++;
+                if (contadorLinhas % 1000000 == 0) System.out.println("Processadas " + contadorLinhas + " linhas...");
             }
-            if (linhasLidas % 500000 == 0 && linhasLidas > 0){
-                System.out.println("Processadas " + linhasLidas + " arestas...");
-            }
+        } catch (IOException e) {
+            System.err.println("Erro na leitura do arquivo: " + e.getMessage());
         }
-        System.out.println("Total de linhas lidas: " + linhasLidas);
-    } catch (IOException e ){
-        System.err.println("ERRO CRÍTICO: Não foi possível ler o arquivo.");
-        System.err.println("Certifique-se que o nome é exatamente roadNet-PA.txt");
-        e.printStackTrace();
-    }
-        System.out.println("Leitura concluída!");
-        System.out.println("Número de vértices: " + g.V());
-        System.out.println("Número de arestas: " + g.E());
-        System.out.println("Densidade do grafo: " + g.getDensity());
 
-        g.gerarDistribuicaoGraus();
-        g.salvarDistribuicaoGrausTxt("distribuicao_graus.txt");
-
-        //Chama o metodo de Exportar o CSV
-        g.exportarGrausParaCSV("graus_vertices.csv");
-
-        var s = g.getEstatiscasGrau();
-        System.out.println("Grau máximo: " + s.get("max"));
-        System.out.println("Grau mínimo: " + s.get("min"));
-        System.out.println("Grau médio: " + s.get("medio"));
-
-        System.out.println("Gerando amostra DOT para Graphviz...");
-        saveToFile("amostra_pensilvania.dot", g.toDot(200));
+        System.out.println("\n---- Gerando resultados ----");
+        g.salvarDistribuicaoGraus("distribuicao_graus.csv");
+        g.salvarResumoMetricas("resumo_metricas.csv");
     }
 
-    private static void saveToFile(String nome, String conteudo){
-        try(PrintWriter out = new PrintWriter(nome)) {
-            out.println(conteudo);
-        }catch (Exception e) {e.printStackTrace();}
+    // Metodo para baixar e descompactar na pasta do projeto
+    private static void baixarEDescompactar(String urlStr, String destinoTxt) throws IOException {
+        URL url = new URL(urlStr);
+        try (GZIPInputStream gis = new GZIPInputStream(url.openStream());
+             FileOutputStream fos = new FileOutputStream(destinoTxt)) {
+
+            byte[] buffer = new byte[1024];
+            int len;
+            while ((len = gis.read(buffer)) > 0) {
+                fos.write(buffer, 0, len);
+            }
         }
+    }
 }
